@@ -1,9 +1,25 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
+import { setCachedSession } from '../authSession.ts'
 import { getTaskEvaluation } from './performance.ts'
 
 const originalFetch = globalThis.fetch
+const originalWindow = globalThis.window
+const testSession = { access_token: 'test-access-token' }
+const testWindow = { setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout }
+
+test.beforeEach(() => {
+  setCachedSession(testSession)
+  globalThis.window = testWindow
+})
+
+test.afterEach(() => {
+  setCachedSession(null)
+  globalThis.fetch = originalFetch
+  if (originalWindow === undefined) delete globalThis.window
+  else globalThis.window = originalWindow
+})
 
 test('getTaskEvaluation treats the explicit missing-evaluation 404 as empty state', async () => {
   globalThis.fetch = async () => ({
@@ -12,11 +28,7 @@ test('getTaskEvaluation treats the explicit missing-evaluation 404 as empty stat
     json: async () => ({ detail: 'Evaluation not found' }),
   })
 
-  try {
-    assert.equal(await getTaskEvaluation('project-1', 'task-1'), null)
-  } finally {
-    globalThis.fetch = originalFetch
-  }
+  assert.equal(await getTaskEvaluation('project-1', 'task-1'), null)
 })
 
 test('getTaskEvaluation preserves other 404 API failures', async () => {
@@ -26,9 +38,5 @@ test('getTaskEvaluation preserves other 404 API failures', async () => {
     json: async () => ({ detail: 'Project not found' }),
   })
 
-  try {
-    await assert.rejects(getTaskEvaluation('project-1', 'task-1'), /Project not found/)
-  } finally {
-    globalThis.fetch = originalFetch
-  }
+  await assert.rejects(getTaskEvaluation('project-1', 'task-1'), /Project not found/)
 })

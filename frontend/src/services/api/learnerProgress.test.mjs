@@ -1,9 +1,25 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
+import { setCachedSession } from '../authSession.ts'
 import { getLearnerProgress, getLearnerSkills } from './learner.ts'
 
 const originalFetch = globalThis.fetch
+const originalWindow = globalThis.window
+const testSession = { access_token: 'test-access-token' }
+const testWindow = { setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout }
+
+test.beforeEach(() => {
+  setCachedSession(testSession)
+  globalThis.window = testWindow
+})
+
+test.afterEach(() => {
+  setCachedSession(null)
+  globalThis.fetch = originalFetch
+  if (originalWindow === undefined) delete globalThis.window
+  else globalThis.window = originalWindow
+})
 
 test('getLearnerProgress handles empty response', async () => {
   globalThis.fetch = async () => ({
@@ -15,7 +31,6 @@ test('getLearnerProgress handles empty response', async () => {
   assert.deepEqual(response.projects, [])
   assert.equal(response.totals.projects_started, 0)
 
-  globalThis.fetch = originalFetch
 })
 
 test('getLearnerProgress handles multi-project response', async () => {
@@ -35,7 +50,6 @@ test('getLearnerProgress handles multi-project response', async () => {
   assert.equal(response.projects.length, 2)
   assert.equal(response.projects[1].completed, true)
 
-  globalThis.fetch = originalFetch
 })
 
 test('getLearnerProgress propagates API failures', async () => {
@@ -45,11 +59,7 @@ test('getLearnerProgress propagates API failures', async () => {
     json: async () => ({ detail: 'Progress service unavailable' }),
   })
 
-  try {
-    await assert.rejects(getLearnerProgress(), /Progress service unavailable/)
-  } finally {
-    globalThis.fetch = originalFetch
-  }
+  await assert.rejects(getLearnerProgress(), /Progress service unavailable/)
 })
 
 test('getLearnerSkills handles no evidence', async () => {
@@ -62,7 +72,6 @@ test('getLearnerSkills handles no evidence', async () => {
   assert.deepEqual(response.skills, [])
   assert.equal(response.totals.total_skills, 0)
 
-  globalThis.fetch = originalFetch
 })
 
 test('getLearnerSkills handles multiple skills and optional fields', async () => {
@@ -82,5 +91,4 @@ test('getLearnerSkills handles multiple skills and optional fields', async () =>
   assert.equal(response.skills[0].demonstrated, true)
   assert.equal(response.skills[1].score, 52)
 
-  globalThis.fetch = originalFetch
 })

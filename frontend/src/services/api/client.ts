@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../supabase.ts'
+import { getCachedSession, setCachedSession } from '../authSession.ts'
 
 const configuredApiBaseUrl = import.meta.env?.VITE_API_BASE_URL
 if (import.meta.env?.PROD && !configuredApiBaseUrl) {
@@ -7,6 +8,7 @@ if (import.meta.env?.PROD && !configuredApiBaseUrl) {
 
 const apiBaseUrl = configuredApiBaseUrl || 'http://localhost:8000/api'
 const isDev = Boolean(typeof import.meta !== 'undefined' && import.meta.env?.DEV)
+const requestTimeoutMs = 30_000
 
 export interface ApiErrorOptions {
   status?: number
@@ -28,6 +30,34 @@ export class ApiError extends Error {
   }
 }
 
+async function getAccessToken(): Promise<string | null> {
+  const session = getCachedSession()
+  const isExpired = session?.expires_at !== undefined && session.expires_at <= Date.now() / 1000
+
+  if (session !== undefined && !isExpired) {
+    return session?.access_token ?? null
+  }
+
+  const { data, error } = await getSupabaseClient().auth.getSession()
+  if (error) throw error
+
+  setCachedSession(data.session)
+  return data.session?.access_token ?? null
+}
+
+async function revalidateSession(): Promise<void> {
+  try {
+    const supabase = getSupabaseClient()
+    const { error: userError } = await supabase.auth.getUser()
+    if (userError) return
+
+    const { data, error: sessionError } = await supabase.auth.getSession()
+    if (!sessionError) setCachedSession(data.session)
+  } catch {
+    // The original API response remains authoritative; revalidation is best-effort.
+  }
+}
+
 async function requestApi<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers)
   if (init?.body && !(init.body instanceof FormData)) {
@@ -35,37 +65,49 @@ async function requestApi<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   try {
-    const { data } = await getSupabaseClient().auth.getSession()
-    if (data.session) headers.set('Authorization', `Bearer ${data.session.access_token}`)
-  } catch {
-    headers.delete('Authorization')
+    const accessToken = await getAccessToken()
+    if (!accessToken) {
+      throw new ApiError('Authentication is required to make API requests.', { status: 401 })
+    }
+    headers.set('Authorization', `Bearer ${accessToken}`)
+  } catch (error) {
+    if (error instanceof ApiError) throw error
+    throw new ApiError('Unable to restore the authenticated session.', { status: 401 })
   }
 
-  let response: Response
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs)
   try {
-    response = await fetch(`${apiBaseUrl}${path}`, {
+    const response = await fetch(`${apiBaseUrl}${path}`, {
       ...init,
       headers,
+      signal: controller.signal,
     })
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { detail?: string } | null
+      const detail = body?.detail
+      const message = detail ?? `API request failed with status ${response.status}`
+      if (isDev) {
+        console.error(`[API Error ${response.status}] ${init?.method ?? 'GET'} ${apiBaseUrl}${path}:`, detail ?? message)
+      }
+      if (response.status === 401) void revalidateSession()
+      throw new ApiError(message, { status: response.status, detail })
+    }
+
+    return response.json() as Promise<T>
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Network request failed'
+    if (error instanceof ApiError) throw error
+    const message = error instanceof DOMException && error.name === 'AbortError'
+      ? `API request timed out after ${requestTimeoutMs / 1000} seconds`
+      : error instanceof Error ? error.message : 'Network request failed'
     if (isDev) {
       console.error(`[API Network Error] ${init?.method ?? 'GET'} ${apiBaseUrl}${path}:`, message)
     }
     throw new ApiError(message, { isNetworkError: true })
+  } finally {
+    window.clearTimeout(timeoutId)
   }
-
-  if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { detail?: string } | null
-    const detail = body?.detail
-    const message = detail ?? `API request failed with status ${response.status}`
-    if (isDev) {
-      console.error(`[API Error ${response.status}] ${init?.method ?? 'GET'} ${apiBaseUrl}${path}:`, detail ?? message)
-    }
-    throw new ApiError(message, { status: response.status, detail })
-  }
-
-  return response.json() as Promise<T>
 }
 
 export function getApi<T>(path: string): Promise<T> {

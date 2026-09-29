@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 
 import { getSupabaseClient } from '../services/supabase'
+import { setCachedSession } from '../services/authSession.ts'
 import { AuthContext, type AppRole, type UserProfile } from './context'
 import { authenticateAndLoadProfile, resolveAuthenticatedProfile, signOutAndClear } from './profileResolution'
 
@@ -53,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const applySession = async (nextSession: Session | null) => {
       const requestId = ++profileRequestId.current
       setLoading(Boolean(nextSession))
+      setCachedSession(nextSession)
       setSession(nextSession)
       setProfile(null)
       setError(null)
@@ -92,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       authEventReceived = true
+      setCachedSession(nextSession)
       queueMicrotask(() => {
         if (!mounted) return
         void applySession(nextSession)
@@ -115,7 +118,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const nextProfile = await authenticateAndLoadProfile(
         () => getSupabaseClient().auth.signInWithPassword({ email, password }),
         (_user, nextSession) => {
-          if (requestId === profileRequestId.current) setSession(nextSession)
+          if (requestId === profileRequestId.current) {
+            setCachedSession(nextSession)
+            setSession(nextSession)
+          }
         },
         loadProfile,
       )
@@ -153,6 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data.session && data.user) {
         const requestId = ++profileRequestId.current
+        setCachedSession(data.session)
         setSession(data.session)
         const nextProfile = await loadProfile(data.user.id)
         if (requestId === profileRequestId.current) setProfile(nextProfile)
@@ -174,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       () => getSupabaseClient().auth.signOut(),
       () => {
         profileRequestId.current += 1
+        setCachedSession(null)
         setSession(null)
         setProfile(null)
         setLoading(false)
