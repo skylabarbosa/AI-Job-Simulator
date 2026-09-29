@@ -1,0 +1,35 @@
+<svg width="720" height="520" viewBox="0 0 720 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="80" y1="40" x2="640" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EAF3FA"/>
+      <stop offset="1" stop-color="#E8F7F2"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="144" y1="90" x2="566" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#06294F"/>
+      <stop offset="1" stop-color="#0B5DA8"/>
+    </linearGradient>
+  </defs>
+  <rect width="720" height="520" rx="32" fill="url(#bg)"/>
+  <rect x="120" y="94" width="480" height="278" rx="28" fill="url(#panel)"/>
+  <rect x="158" y="130" width="182" height="14" rx="7" fill="#9FE3CB" fill-opacity="0.9"/>
+  <rect x="158" y="160" width="124" height="10" rx="5" fill="#EAF3FA" fill-opacity="0.34"/>
+  <path d="M180 292C212 264 246 240 282 248C314 255 339 285 379 258C415 232 444 190 486 196C516 200 540 220 553 238V352H180V292Z" fill="#079A82" fill-opacity="0.92"/>
+  <path d="M180 326C228 294 269 281 306 290C335 297 371 324 399 314C432 302 476 232 553 244V352H180V326Z" fill="#9FE3CB" fill-opacity="0.75"/>
+  <g opacity="0.9">
+    <rect x="502" y="130" width="52" height="112" rx="12" fill="#9FE3CB"/>
+    <rect x="462" y="154" width="52" height="88" rx="12" fill="#079A82"/>
+    <rect x="422" y="182" width="52" height="60" rx="12" fill="#0B5DA8"/>
+    <rect x="382" y="170" width="52" height="72" rx="12" fill="#9FE3CB"/>
+  </g>
+  <g>
+    <circle cx="200" cy="410" r="22" fill="#EAF3FA" fill-opacity="0.95"/>
+    <circle cx="278" cy="410" r="22" fill="#9FE3CB" fill-opacity="0.9"/>
+    <circle cx="356" cy="410" r="22" fill="#079A82" fill-opacity="0.9"/>
+    <circle cx="434" cy="410" r="22" fill="#0B5DA8" fill-opacity="0.9"/>
+    <circle cx="512" cy="410" r="22" fill="#EAF3FA" fill-opacity="0.95"/>
+    <path d="M192 410H208M270 410H286M348 410H364M426 410H442M504 410H520" stroke="#06294F" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <path d="M178 381L232 346L276 365L318 321L382 350L440 281L501 308L554 272" stroke="#EAF3FA" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="318" cy="321" r="8" fill="#EAF3FA"/>
+  <circle cx="440" cy="281" r="8" fill="#EAF3FA"/>
+</svg>

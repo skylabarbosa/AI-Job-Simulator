@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+backend/venv/
+.venv/
+venv/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+node_modules/
+dist/
+build/
+*.local
+
+# Generated QA and audit output
+qa/
+artifacts/
+audit-output/
+screenshots/
+
+# Deployment and test output
+.vercel/
+coverage/
+*.log
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.swp
+
+backend/supabase/.temp/
+supabase/.temp/
