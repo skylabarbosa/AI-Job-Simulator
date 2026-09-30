@@ -610,7 +610,7 @@ export function LearnerStartedTaskWorkspacePage() {
                         disabled={previewLoading}
                         aria-busy={previewLoading && previewDatasetId === dataset.id}
                       >
-                        {previewLoading && previewDatasetId === dataset.id ? 'Loading...' : 'Preview dataset'}
+                        {previewLoading && previewDatasetId === dataset.id ? 'Loading...' : 'Preview'}
                       </Button>
                       <Button
                         variant="outline"
