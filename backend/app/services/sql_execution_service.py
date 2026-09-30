@@ -3,6 +3,7 @@
 import csv
 import io
 import json
+import logging
 import re
 import sqlite3
 import time
@@ -11,6 +12,9 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from app.db.client import get_supabase_client
+
+
+logger = logging.getLogger(__name__)
 
 
 MAX_QUERY_LENGTH = 20_000
@@ -66,6 +70,7 @@ def _load_task_datasets(client: Any, project_id: str, table_names: set[str]) -> 
         try:
             content = client.storage.from_("project-datasets").download(dataset["storage_path"])
         except Exception as error:
+            logger.exception("Unable to download SQL dataset from Supabase Storage")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unable to load the task dataset.") from error
         loaded.append((dataset, content))
     return loaded
@@ -149,8 +154,10 @@ def execute_task_sql(*, project_id: str, task: dict[str, Any], query: str) -> di
     except HTTPException:
         raise
     except (UnicodeDecodeError, csv.Error, ValueError) as error:
+        logger.info("SQL query could not be processed: %s", error)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"SQL could not be run: {error}") from error
     except Exception as error:
+        logger.exception("Unexpected SQL query execution failure")
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="SQL could not be run. Check the table and column names.") from error
     finally:
         connection.close()
