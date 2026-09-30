@@ -4326,15 +4326,19 @@
 }
 
 .workspace-resources .resource-item .project-card-actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(6.5rem, auto);
-  align-items: stretch;
-  gap: 0.75rem;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
   margin-top: 0.9rem;
+  overflow: hidden;
 }
 
 .workspace-resources .resource-item .project-card-actions>* {
-  width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-shrink: 1 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
   justify-content: center;
   white-space: nowrap;
 }
