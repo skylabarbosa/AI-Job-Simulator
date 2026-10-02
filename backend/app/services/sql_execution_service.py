@@ -133,9 +133,11 @@ def execute_task_sql(*, project_id: str, task: dict[str, Any], query: str) -> di
         try:
             columns, raw_rows = _execute(connection, query)
         except sqlite3.OperationalError as error:
-            if "interrupted" in str(error).lower():
+            error_message = str(error)
+            if "interrupted" in error_message.lower():
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Your query took too long to complete. Try narrowing the result.") from error
-            raise
+            logger.info("SQL query failed during execution: %s", error_message)
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"SQL could not be run: {error_message}") from error
 
         truncated = len(raw_rows) > MAX_RESULT_ROWS
         rows = [[_safe_value(value) for value in row] for row in raw_rows[:MAX_RESULT_ROWS]]
@@ -158,6 +160,6 @@ def execute_task_sql(*, project_id: str, task: dict[str, Any], query: str) -> di
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"SQL could not be run: {error}") from error
     except Exception as error:
         logger.exception("Unexpected SQL query execution failure")
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="SQL could not be run. Check the table and column names.") from error
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"SQL could not be run: {error}") from error
     finally:
         connection.close()
