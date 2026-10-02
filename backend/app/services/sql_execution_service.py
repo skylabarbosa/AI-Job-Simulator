@@ -110,7 +110,6 @@ def execute_task_sql(*, project_id: str, task: dict[str, Any], query: str) -> di
     connection = sqlite3.connect(":memory:")
     started = time.perf_counter()
     try:
-        connection.enable_load_extension(False)
         connection.set_authorizer(_authorizer)
         deadline = time.perf_counter() + EXECUTION_TIMEOUT_SECONDS
         connection.set_progress_handler(lambda: 1 if time.perf_counter() > deadline else 0, 10_000)
